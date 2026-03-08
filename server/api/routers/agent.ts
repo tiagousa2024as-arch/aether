@@ -9,7 +9,7 @@ import { generatePlan, executeStep } from "@/server/agents";
 
 const taskStepSchema = z.object({
   id: z.string(),
-  type: z.enum(["research", "code", "automation", "memory"]),
+  type: z.enum(["planner", "research", "code", "automation", "memory"]),
   title: z.string(),
   description: z.string().optional(),
   payload: z.record(z.unknown()).optional(),
