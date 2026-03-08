@@ -1,5 +1,6 @@
 /**
  * Automation tRPC router - Workflows with trigger + steps.
+ * [deploy-fix] config uses toConfigJson + Prisma cast (no string in Json field).
  */
 
 import type { Prisma } from "@prisma/client";
@@ -11,6 +12,20 @@ const stepSchema = z.object({
   agentType: z.enum(["research", "code", "automation", "memory"]),
   config: z.record(z.unknown()).optional(),
 });
+
+/** Prisma Json column accepts object only (no string). Normalize at runtime. */
+function toConfigJson(val: unknown): object | undefined {
+  if (val === undefined || val === null) return undefined;
+  if (typeof val === "object" && val !== null) return val as object;
+  return undefined;
+}
+
+/** Nested create payload for AutomationStep. Cast to Prisma type so build passes (config is object-only at runtime). */
+type StepCreate = {
+  order: number;
+  agentType: string;
+  config?: object;
+};
 
 export const automationRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -50,6 +65,11 @@ export const automationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const stepsCreate: StepCreate[] = input.steps.map((s) => ({
+        order: s.order,
+        agentType: s.agentType,
+        config: toConfigJson(s.config),
+      }));
       const automation = await ctx.db.automation.create({
         data: {
           userId: ctx.user.id,
@@ -59,11 +79,7 @@ export const automationRouter = createTRPCRouter({
           schedule: input.schedule ?? null,
           enabled: true,
           steps: {
-            create: input.steps.map((s) => ({
-              order: s.order,
-              agentType: s.agentType,
-              config: (s.config ?? undefined) as Prisma.InputJsonValue | undefined,
-            })),
+            create: stepsCreate as Prisma.AutomationStepCreateWithoutAutomationInput[],
           },
         },
         include: { steps: true },
@@ -94,19 +110,26 @@ export const automationRouter = createTRPCRouter({
       });
       if (!existing) throw new Error("Automation not found");
 
-      const data: { name?: string; description?: string | null; enabled?: boolean; schedule?: string | null; steps?: { deleteMany: {}; create: Array<{ order: number; agentType: string; config?: object }> } } = {};
+      const data: {
+        name?: string;
+        description?: string | null;
+        enabled?: boolean;
+        schedule?: string | null;
+        steps?: { deleteMany: {}; create: Prisma.AutomationStepCreateWithoutAutomationInput[] };
+      } = {};
       if (input.name !== undefined) data.name = input.name;
       if (input.description !== undefined) data.description = input.description;
       if (input.enabled !== undefined) data.enabled = input.enabled;
       if (input.schedule !== undefined) data.schedule = input.schedule;
       if (input.steps !== undefined) {
+        const stepsCreate: StepCreate[] = input.steps.map((s) => ({
+          order: s.order,
+          agentType: s.agentType,
+          config: toConfigJson(s.config),
+        }));
         data.steps = {
           deleteMany: {},
-          create: input.steps.map((s) => ({
-            order: s.order,
-            agentType: s.agentType,
-            config: (s.config ?? undefined) as Prisma.InputJsonValue | undefined,
-          })),
+          create: stepsCreate as Prisma.AutomationStepCreateWithoutAutomationInput[],
         };
       }
 

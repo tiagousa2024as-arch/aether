@@ -16,17 +16,43 @@ import {
   Loader2,
   Plus,
   Trash2,
-  ChevronDown,
 } from "lucide-react";
 
-const AGENT_TYPES = [
+/** Union for automation step agent type (must match server api/routers/automation stepSchema). */
+type AutomationAgentType = "research" | "code" | "automation" | "memory";
+
+/** Step shape used in create form state and when calling automation.create. */
+interface AutomationStepState {
+  order: number;
+  agentType: AutomationAgentType;
+}
+
+const AGENT_TYPES: readonly {
+  value: AutomationAgentType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { value: "research", label: "Research", icon: Search },
   { value: "code", label: "Code", icon: FileText },
   { value: "automation", label: "Automation", icon: Workflow },
   { value: "memory", label: "Memory", icon: Mail },
-] as const;
+];
 
-type AgentType = (typeof AGENT_TYPES)[number]["value"];
+const AGENT_TYPE_VALUES: readonly AutomationAgentType[] = [
+  "research",
+  "code",
+  "automation",
+  "memory",
+];
+
+function isAutomationAgentType(s: string): s is AutomationAgentType {
+  return (AGENT_TYPE_VALUES as readonly string[]).includes(s);
+}
+
+/** Safely convert select value (string) to AutomationAgentType; fallback to "research". */
+function parseAgentTypeFromSelect(value: string): AutomationAgentType {
+  return isAutomationAgentType(value) ? value : "research";
+}
 
 export default function AutomationsPage() {
   const [showCreate, setShowCreate] = useState(false);
@@ -34,7 +60,7 @@ export default function AutomationsPage() {
   const [description, setDescription] = useState("");
   const [triggerType, setTriggerType] = useState<"schedule" | "manual">("schedule");
   const [schedule, setSchedule] = useState("daily 8:00");
-  const [steps, setSteps] = useState<{ order: number; agentType: AgentType }[]>([
+  const [steps, setSteps] = useState<AutomationStepState[]>([
     { order: 0, agentType: "research" },
     { order: 1, agentType: "code" },
     { order: 2, agentType: "memory" },
@@ -49,7 +75,11 @@ export default function AutomationsPage() {
       setName("");
       setDescription("");
       setSchedule("daily 8:00");
-      setSteps([{ order: 0, agentType: "research" }, { order: 1, agentType: "code" }, { order: 2, agentType: "memory" }]);
+      setSteps([
+        { order: 0, agentType: "research" },
+        { order: 1, agentType: "code" },
+        { order: 2, agentType: "memory" },
+      ]);
     },
   });
   const deleteMutation = trpc.automation.delete.useMutation({
@@ -75,8 +105,10 @@ export default function AutomationsPage() {
     setSteps((prev) => prev.filter((_, i) => i !== index).map((s, i) => ({ ...s, order: i })));
   };
 
-  const updateStepAgent = (index: number, agentType: AgentType) => {
-    setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, agentType } : s)));
+  const updateStep = (index: number, payload: { agentType: AutomationAgentType }) => {
+    setSteps((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, agentType: payload.agentType } : s))
+    );
   };
 
   return (
@@ -167,7 +199,7 @@ export default function AutomationsPage() {
                     <span className="text-xs text-muted-foreground w-6">{i + 1}.</span>
                     <select
                       value={step.agentType}
-                      onChange={(e) => updateStepAgent(i, e.target.value as AgentType)}
+                      onChange={(e) => updateStep(i, { agentType: parseAgentTypeFromSelect(e.target.value) })}
                       className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                     >
                       {AGENT_TYPES.map((a) => (

@@ -1,13 +1,13 @@
 /**
- * Proxy (Next.js 16) - Protects /dashboard/*, /billing, /settings.
+ * Next.js 16 proxy - Protects /dashboard/*, /billing, /settings.
  * Redirects to /login when unauthenticated.
- * Replaces deprecated middleware.ts.
+ * File must be named proxy.ts at project root (Next.js 16+ convention).
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const isLoggedIn = !!req.auth;
   const isProtected =
     req.nextUrl.pathname.startsWith("/dashboard") ||

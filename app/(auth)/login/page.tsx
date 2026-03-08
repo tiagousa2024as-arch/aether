@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ const inputClass =
 
 const labelClass = "text-sm font-medium text-white/80";
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const registered = searchParams.get("registered") === "1";
@@ -145,5 +145,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center text-white/60">Loading…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

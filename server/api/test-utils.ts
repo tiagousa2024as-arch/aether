@@ -15,6 +15,7 @@ export function createMockContext(overrides: {
   return {
     session: {
       user: { id: userId, email: "test@example.com", name: "Test" },
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     },
     user: { id: userId, email: "test@example.com", name: "Test" },
     db: db as PrismaClient,
