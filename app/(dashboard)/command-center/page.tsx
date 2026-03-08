@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc/client";
 import { Button } from "@/components/ui/button";
@@ -43,11 +42,7 @@ export default function CommandCenterPage() {
   const [stepResults, setStepResults] = useState<StepResult[]>([]);
   const [runningIndex, setRunningIndex] = useState<number | null>(null);
 
-  const createPlanMutation = useMutation({
-    mutationFn: async (cmd: string) => {
-      const result = await trpc.agent.createPlan.mutate({ command: cmd });
-      return result;
-    },
+  const createPlanMutation = trpc.agent.createPlan.useMutation({
     onSuccess: (data) => {
       setPlan(data);
       setStepResults([]);
@@ -55,23 +50,7 @@ export default function CommandCenterPage() {
     },
   });
 
-  const executeStepMutation = useMutation({
-    mutationFn: async ({
-      step,
-      context,
-      taskRunId,
-    }: {
-      step: TaskStep;
-      context: { planId: string; command: string; previousResults: StepResult[] };
-      taskRunId?: string;
-    }) => {
-      const result = await trpc.agent.executeStep.mutate({
-        step,
-        context,
-        taskRunId,
-      });
-      return result;
-    },
+  const executeStepMutation = trpc.agent.executeStep.useMutation({
     onMutate: ({ step }) => {
       const idx = plan?.steps.findIndex((s) => s.id === step.id) ?? -1;
       setRunningIndex(idx);
@@ -85,14 +64,17 @@ export default function CommandCenterPage() {
     },
   });
 
+  const startTaskRunMutation = trpc.agent.startTaskRun.useMutation();
+  const completeTaskRunMutation = trpc.agent.completeTaskRun.useMutation();
+
   const handleGeneratePlan = () => {
-    createPlanMutation.mutate(command);
+    createPlanMutation.mutate({ command });
   };
 
   const handleRunPlan = async () => {
     if (!plan) return;
     setStepResults([]);
-    const { taskRunId } = await trpc.agent.startTaskRun.mutate({
+    const { taskRunId } = await startTaskRunMutation.mutateAsync({
       planId: plan.id,
     });
     const sortedSteps = [...plan.steps].sort((a, b) => a.order - b.order);
@@ -114,7 +96,7 @@ export default function CommandCenterPage() {
       setStepResults((prev) => [...prev, result]);
       if (result.status === "failed") finalStatus = "failed";
     }
-    await trpc.agent.completeTaskRun.mutate({
+    await completeTaskRunMutation.mutateAsync({
       taskRunId,
       status: finalStatus,
     });
