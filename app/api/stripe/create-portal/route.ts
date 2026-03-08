@@ -23,8 +23,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const email = session.user.email;
+    let customerId: string | undefined;
+    const existing = await stripe.customers.list({ email, limit: 1 });
+    if (existing.data.length > 0) {
+      customerId = existing.data[0].id;
+    } else {
+      const customer = await stripe.customers.create({ email });
+      customerId = customer.id;
+    }
+
     const { url } = await stripe.billingPortal.sessions.create({
-      customer_email: session.user.email,
+      customer: customerId,
       return_url: returnUrl ?? undefined,
     });
     return NextResponse.json({ url });
