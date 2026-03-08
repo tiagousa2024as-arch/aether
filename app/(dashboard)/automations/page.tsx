@@ -167,7 +167,7 @@ export default function AutomationsPage() {
                     <span className="text-xs text-muted-foreground w-6">{i + 1}.</span>
                     <select
                       value={step.agentType}
-                      onChange={(e) => updateStepAgent(i, e.target.value)}
+                      onChange={(e) => updateStepAgent(i, e.target.value as AgentType)}
                       className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                     >
                       {AGENT_TYPES.map((a) => (
