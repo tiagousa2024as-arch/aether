@@ -1,0 +1,170 @@
+// =============================================================================
+// Aether - Prisma Schema (PostgreSQL)
+// =============================================================================
+// Run: npx prisma generate && npx prisma migrate dev
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_DATABASE_URL")  // Uncomment for Neon/Vercel Postgres if needed
+}
+
+// -----------------------------------------------------------------------------
+// Auth (Auth.js / NextAuth adapter)
+// -----------------------------------------------------------------------------
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // Hashed; for credentials provider only
+  accounts      Account[]
+  sessions      Session[]
+  plans         Plan[]
+  taskRuns      TaskRun[]
+  memories      Memory[]
+  automations   Automation[]
+  integrations  Integration[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// -----------------------------------------------------------------------------
+// Plans & Task runs (Command center execution)
+// -----------------------------------------------------------------------------
+model Plan {
+  id        String   @id
+  userId    String?
+  command   String   @db.Text
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  steps     PlanStep[]
+  taskRuns  TaskRun[]
+}
+
+model PlanStep {
+  id          String  @id
+  planId      String
+  type        String  // research | code | automation | memory
+  title       String
+  description String? @db.Text
+  order       Int
+  payload     Json?
+  plan        Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model TaskRun {
+  id          String   @id @default(cuid())
+  planId      String
+  userId      String?
+  status      String   // pending | running | completed | failed
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  stepResults StepResult[]
+}
+
+model StepResult {
+  id         String   @id @default(cuid())
+  taskRunId  String
+  stepId     String
+  status     String   // pending | running | completed | failed
+  output     String?  @db.Text
+  error      String?  @db.Text
+  durationMs Int?
+  artifacts  Json?
+  taskRun    TaskRun  @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+}
+
+// -----------------------------------------------------------------------------
+// Memory (agent-stored context)
+// -----------------------------------------------------------------------------
+model Memory {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String   @db.Text
+  source    String?  // e.g. taskRunId, planId
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// -----------------------------------------------------------------------------
+// Automations (workflows: trigger + steps)
+// -----------------------------------------------------------------------------
+model Automation {
+  id          String           @id @default(cuid())
+  userId      String
+  name        String
+  description String?          @db.Text
+  triggerType String           // schedule | manual
+  schedule    String?          // cron or "daily 8:00"
+  enabled     Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps       AutomationStep[]
+}
+
+model AutomationStep {
+  id           String     @id @default(cuid())
+  automationId String
+  order        Int
+  agentType    String     // research | code | automation | memory
+  config       Json?      // step-specific config
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+}
+
+// -----------------------------------------------------------------------------
+// Integrations (connected providers)
+// -----------------------------------------------------------------------------
+model Integration {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String   // slack | google | github | notion | email | calendar
+  status    String   @default("active") // active | expired | error
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, provider])
+}
+
+// -----------------------------------------------------------------------------
+// Billing (Stripe)
+// -----------------------------------------------------------------------------
+// Add models: Subscription, CustomerId when implementing webhooks.
