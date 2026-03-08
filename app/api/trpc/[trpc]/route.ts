@@ -12,7 +12,7 @@ const handler = (req: Request) =>
     endpoint: "/api/trpc",
     req,
     router: appRouter,
-    createContext: () => createTRPCContext({ req, resHeaders: new Headers() }),
+    createContext: (opts) => createTRPCContext(opts),
     transformer: superjson,
   });
 
