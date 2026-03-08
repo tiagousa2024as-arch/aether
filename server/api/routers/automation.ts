@@ -2,6 +2,7 @@
  * Automation tRPC router - Workflows with trigger + steps.
  */
 
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -61,7 +62,7 @@ export const automationRouter = createTRPCRouter({
             create: input.steps.map((s) => ({
               order: s.order,
               agentType: s.agentType,
-              config: s.config ?? undefined,
+              config: (s.config ?? undefined) as Prisma.InputJsonValue | undefined,
             })),
           },
         },
@@ -104,7 +105,7 @@ export const automationRouter = createTRPCRouter({
           create: input.steps.map((s) => ({
             order: s.order,
             agentType: s.agentType,
-            config: s.config ?? undefined,
+            config: (s.config ?? undefined) as Prisma.InputJsonValue | undefined,
           })),
         };
       }

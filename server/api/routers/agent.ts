@@ -3,6 +3,7 @@
  * Persists plans and task runs to DB when session/db available.
  */
 
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { generatePlan, executeStep } from "@/server/agents";
@@ -77,7 +78,7 @@ export const agentRouter = createTRPCRouter({
               title: s.title,
               description: s.description ?? null,
               order: s.order,
-              payload: s.payload ?? undefined,
+              payload: (s.payload ?? undefined) as Prisma.InputJsonValue | undefined,
             })),
           },
         },
@@ -91,7 +92,7 @@ export const agentRouter = createTRPCRouter({
               title: s.title,
               description: s.description ?? null,
               order: s.order,
-              payload: s.payload ?? undefined,
+              payload: (s.payload ?? undefined) as Prisma.InputJsonValue | undefined,
             })),
           },
         },
@@ -133,7 +134,7 @@ export const agentRouter = createTRPCRouter({
             output: result.output ?? null,
             error: result.error ?? null,
             durationMs: result.durationMs ?? null,
-            artifacts: result.artifacts ?? undefined,
+            artifacts: (result.artifacts ?? undefined) as Prisma.InputJsonValue | undefined,
           },
         });
         if (
