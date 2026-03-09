@@ -4,6 +4,6 @@
  */
 
 export { getSalesforceConfig } from "./config";
-export { createLead } from "./client";
+export { createLead, createContact } from "./client";
 export { executeCreateLead, salesforceActions } from "./actions";
 export type { CreateLeadInput, CreateLeadResult } from "./types";

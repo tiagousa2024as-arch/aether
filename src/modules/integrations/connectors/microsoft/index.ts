@@ -5,6 +5,6 @@
  */
 
 export { getMicrosoftConfig } from "./config";
-export { sendTeamsMessage } from "./client";
+export { sendTeamsMessage, sendEmail } from "./client";
 export { executeSendTeamsMessage, microsoftActions } from "./actions";
 export type { SendTeamsMessageInput, SendTeamsMessageResult } from "./types";
