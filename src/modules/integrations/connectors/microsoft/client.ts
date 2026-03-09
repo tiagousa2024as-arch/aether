@@ -11,7 +11,7 @@ async function getAccessToken(): Promise<string> {
   const config = getMicrosoftConfig();
   if (!config) throw new Error("Microsoft not configured. Set MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT_ID.");
 
-  if (cachedToken) return cachedToken;a pasta errada	Nesse terminal o dev não inicia; você pode estar vendo outra aba/outro servidor onde o código j
+  if (cachedToken) return cachedToken;
 
   const url = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
   const body = new URLSearchParams({
