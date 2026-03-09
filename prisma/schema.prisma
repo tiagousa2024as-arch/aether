@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -56,6 +57,8 @@ model User {
   memories      Memory[]
   automations   Automation[]
   integrations  Integration[]
+  workspaces    Workspace[]
+  integrationConnections IntegrationConnection[]
 }
 
 model VerificationToken {
@@ -162,6 +165,105 @@ model Integration {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([userId, provider])
+}
+
+// -----------------------------------------------------------------------------
+// Workspace & Command (AETHER workflow engine)
+// -----------------------------------------------------------------------------
+model Workspace {
+  id              String           @id @default(cuid())
+  name            String
+  userId          String
+  createdAt       DateTime        @default(now())
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commands        Command[]
+  toolExecutions  ToolExecution[]
+}
+
+model ToolExecution {
+  id          String   @id @default(cuid())
+  workspaceId String
+  toolName    String
+  agentId     String
+  input       Json
+  output      String?  @db.Text
+  status      String   // pending | running | completed | failed
+  error       String?  @db.Text
+  duration    Int      // milliseconds
+  createdAt   DateTime @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model Command {
+  id          String    @id @default(cuid())
+  commandText String    @db.Text
+  workspaceId String
+  status      String   // pending | running | completed | failed
+  workflowId  String?
+  createdAt   DateTime @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow    Workflow? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+}
+
+model Workflow {
+  id        String         @id @default(cuid())
+  status    String         // pending | running | completed | failed
+  createdAt DateTime       @default(now())
+  steps     WorkflowStep[]
+  agentRuns AgentRun[]
+  logs      ExecutionLog[]
+  commands  Command[]
+}
+
+model WorkflowStep {
+  id          String    @id @default(cuid())
+  workflowId  String
+  order       Int
+  type        String    // e.g. salesforce_create_lead | microsoft_teams_message
+  status      String    // pending | running | completed | failed
+  input       Json?     // step input from LLM (e.g. { name, company })
+  output      String?   @db.Text
+  error       String?   @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  config      Json?     // optional connector config override
+  workflow    Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model AgentRun {
+  id         String   @id @default(cuid())
+  workflowId String
+  agentType  String   // research_agent | sales_agent | support_agent | operations_agent
+  status     String   // pending | running | completed | failed
+  output     String?  @db.Text
+  error      String?  @db.Text
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model IntegrationConnection {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String   // openai | anthropic | microsoft | salesforce | servicenow
+  accessToken String?  @db.Text
+  refreshToken String? @db.Text
+  expiresAt   DateTime?
+  config      Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, provider])
+}
+
+model ExecutionLog {
+  id         String   @id @default(cuid())
+  workflowId String
+  stepId     String?
+  action     String
+  result     String?  @db.Text
+  error      String?  @db.Text
+  createdAt  DateTime @default(now())
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 }
 
 // -----------------------------------------------------------------------------

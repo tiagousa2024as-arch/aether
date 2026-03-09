@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next lint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -17,6 +17,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@auth/prisma-adapter": "^2.0.0",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -45,6 +46,7 @@
     "lucide-react": "^0.454.0",
     "next": "^16.1.6",
     "next-auth": "^5.0.0-beta.25",
+    "openai": "^6.27.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "stripe": "^17.2.0",

@@ -22,9 +22,9 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "@/modules/*": ["./src/modules/*"],
+      "@prisma/client": ["./generated/prisma"]
     },
     "target": "ES2017"
   },

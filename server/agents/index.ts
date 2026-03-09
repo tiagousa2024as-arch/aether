@@ -4,7 +4,7 @@
 
 export * from "./types";
 export * from "./base";
-export { generatePlan } from "./planner-agent";
+export { generatePlan, generatePlanAsync } from "./planner-agent";
 export { ResearchAgent } from "./research-agent";
 export { CodeAgent } from "./code-agent";
 export { AutomationAgent } from "./automation-agent";

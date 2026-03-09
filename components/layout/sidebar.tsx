@@ -7,10 +7,12 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Command,
+  Terminal,
   Bot,
   ListChecks,
   Brain,
   Workflow,
+  Wrench,
   Plug,
   CreditCard,
   Settings,
@@ -24,11 +26,13 @@ const NAV_GROUPS = [
   {
     label: "Orchestration",
     items: [
+      { href: "/commands", label: "Commands", icon: Terminal },
       { href: "/command-center", label: "Command center", icon: Command },
       { href: "/agents", label: "Agents", icon: Bot },
       { href: "/tasks", label: "Tasks", icon: ListChecks },
       { href: "/memory", label: "Memory", icon: Brain },
       { href: "/automations", label: "Automations", icon: Workflow },
+      { href: "/tools/executions", label: "Tool executions", icon: Wrench },
       { href: "/integrations", label: "Integrations", icon: Plug },
     ],
   },

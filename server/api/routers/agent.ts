@@ -6,7 +6,7 @@
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { generatePlan, executeStep } from "@/server/agents";
+import { generatePlanAsync, executeStep } from "@/server/agents";
 
 const taskStepSchema = z.object({
   id: z.string(),
@@ -64,7 +64,7 @@ export const agentRouter = createTRPCRouter({
   createPlan: protectedProcedure
     .input(z.object({ command: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const plan = generatePlan(input.command);
+      const plan = await generatePlanAsync(input.command);
       await ctx.db.plan.upsert({
         where: { id: plan.id },
         create: {

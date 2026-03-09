@@ -11,7 +11,7 @@
 
 ## Tech stack
 
-- **Next.js 14** (App Router), **TypeScript**, **TailwindCSS**, **Shadcn UI**, **Framer Motion**
+- **Next.js 16** (App Router), **TypeScript**, **TailwindCSS**, **Shadcn UI**, **Framer Motion**
 - **Stripe** (billing), **Prisma** + **PostgreSQL**, **Auth.js**, **tRPC**
 - **Vercel** deployment ready
 

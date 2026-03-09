@@ -1,6 +1,6 @@
 /**
  * PlannerAgent - Turns a user command into an execution plan (ordered steps).
- * Simulated: rule-based plan generation. Replace with LLM call for real AI.
+ * Uses LLM (OpenAI or Anthropic) when configured; otherwise rule-based templates.
  */
 
 import type { ExecutionPlan, TaskStep } from "./types";
@@ -10,6 +10,27 @@ function randomId(): string {
 }
 
 const AGENT_TYPES = ["research", "code", "automation", "memory"] as const;
+
+/** JSON schema for LLM-structured plan output (steps only; we add id/planId). */
+const PLAN_STEPS_SCHEMA = {
+  type: "object",
+  properties: {
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["research", "code", "automation", "memory"] },
+          title: { type: "string" },
+          description: { type: "string" },
+          order: { type: "number" },
+        },
+        required: ["type", "title", "order"],
+      },
+    },
+  },
+  required: ["steps"],
+} as const;
 
 /** Simulated plan templates keyed by command keywords. */
 const PLAN_TEMPLATES: Array<{
@@ -75,8 +96,7 @@ function defaultPlan(): typeof PLAN_TEMPLATES[0]["steps"] {
 }
 
 /**
- * Generate an execution plan from a user command.
- * Simulated: uses keyword matching. Replace with LLM for real planning.
+ * Generate an execution plan from a user command (sync, rule-based fallback).
  */
 export function generatePlan(command: string): ExecutionPlan {
   const planId = randomId();
@@ -96,4 +116,42 @@ export function generatePlan(command: string): ExecutionPlan {
     steps,
     createdAt: Date.now(),
   };
+}
+
+/**
+ * Generate an execution plan using the configured LLM when available.
+ * Falls back to rule-based generatePlan() if no LLM or on error.
+ */
+export async function generatePlanAsync(command: string): Promise<ExecutionPlan> {
+  try {
+    const { getActiveLLMProvider, generateStructuredOutput } = await import("@/modules/agents/llm-provider");
+    if (!getActiveLLMProvider()) return generatePlan(command);
+
+    const raw = await generateStructuredOutput<{ steps: Array<{ type: string; title: string; description?: string; order: number }> }>({
+      prompt: `Given this user command, produce an execution plan with 3-6 steps. Each step must have type (one of: research, code, automation, memory), title, description, and order (0-based). Command: "${command}"`,
+      systemPrompt: "You are a workflow planner. Output only valid JSON with a 'steps' array. Each step: type (research|code|automation|memory), title, description, order.",
+      schema: PLAN_STEPS_SCHEMA as unknown as Record<string, unknown>,
+      maxTokens: 1024,
+    });
+
+    if (!raw?.steps?.length) return generatePlan(command);
+
+    const planId = randomId();
+    const steps: TaskStep[] = raw.steps
+      .filter((s) => AGENT_TYPES.includes(s.type as (typeof AGENT_TYPES)[number]))
+      .map((s, i) => ({
+        id: `${planId}-step-${i}`,
+        type: s.type as TaskStep["type"],
+        title: s.title ?? "Step",
+        description: s.description,
+        payload: { command },
+        order: s.order ?? i,
+      }));
+
+    if (steps.length === 0) return generatePlan(command);
+
+    return { id: planId, command, steps, createdAt: Date.now() };
+  } catch {
+    return generatePlan(command);
+  }
 }

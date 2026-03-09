@@ -1,6 +1,5 @@
 /**
- * ResearchAgent - Simulated research step.
- * Future: call search API / RAG / LLM for real research.
+ * ResearchAgent - Research step using LLM when configured, else simulated.
  */
 
 import { BaseAgent } from "./base";
@@ -17,9 +16,24 @@ export class ResearchAgent extends BaseAgent {
 
   async execute(step: TaskStep, context: ExecutionContext): Promise<StepResult> {
     const start = Date.now();
+    const topic = (step.payload?.command as string) ?? context.command;
+
+    try {
+      const { getActiveLLMProvider, generateText } = await import("@/modules/agents/llm-provider");
+      if (getActiveLLMProvider()) {
+        const output = await generateText({
+          prompt: `As a research assistant, summarize key points and considerations for this task. Be concise (2–4 paragraphs). Task: "${topic}"`,
+          systemPrompt: "You provide factual, concise research summaries. No markdown headers.",
+          maxTokens: 1024,
+        });
+        return this.success(step.id, output.trim(), Date.now() - start);
+      }
+    } catch {
+      // Fall through to simulated output
+    }
+
     await sleep(SIMULATED_DELAY_MS);
     const durationMs = Date.now() - start;
-    const topic = (step.payload?.command as string) ?? context.command;
     return this.success(
       step.id,
       `Research completed for: "${topic.slice(0, 60)}${topic.length > 60 ? "…" : ""}". Key points gathered; sources noted for next step.`,
